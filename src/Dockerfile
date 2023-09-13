@@ -11,4 +11,4 @@ COPY templates /templates
 COPY solarflow-status.py /
 
 
-ENTRYPOINT ["python","solarflow-status.py"]
+ENTRYPOINT ["python","solarflow-status.py","--online"]
