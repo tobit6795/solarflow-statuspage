@@ -1,5 +1,13 @@
+body{
+    background-color: #111111;
+}
+
+button{
+   background-color: #007BFF;
+}
+
 .hero {
-    background: #eee;
+    background: #1c1c1c;
     padding: 20px;
     border-radius: 10px;
     margin-top: 1em;
@@ -10,16 +18,18 @@
     margin-bottom: 0.3em;
     text-align: center;
     font-size: 1.1em;
+    color: #e1e1e1;
 }
 
 .chart-container {
-	max-width: 600px;
-	margin: 0 auto;
+        max-width: 600px;
+        margin: 0 auto;
 }
 
 td.key {
     font-weight: bold;
+    color: #e1e1e1;
 }
 td.value {
-
+    color: #e1e1e1;
 }

@@ -20,7 +20,7 @@ MQTT_HOST = os.environ.get('MQTT_HOST',None)
 MQTT_PORT = os.environ.get('MQTT_PORT',1883)
 MQTT_USER = os.environ.get('MQTT_USER',None)
 MQTT_PW = os.environ.get('MQTT_PWD',None)
-
+SOLARFLOW_TOPIC = os.environ.get('SOLARFLOW_TOPIC',None)
 
 if MQTT_HOST is None:
     log.error("You need a local MQTT broker set (environment variable MQTT_HOST)!")
@@ -62,21 +62,22 @@ def on_zendure_message(client, userdata, msg):
     global local_client
     payload = json.loads(msg.payload.decode())
     if "properties/report" in msg.topic and "properties" in payload:
+        local_client.publish("zend/solarflow/clientId",clientId)
         log.info(payload["properties"])
         if "outputHomePower" in payload["properties"]:
-            local_client.publish("solarflow-hub/telemetry/outputHomePower",payload["properties"]["outputHomePower"])
+            local_client.publish(f"{SOLARFLOW_TOPIC}/telemetry/outputHomePower",payload["properties"]["outputHomePower"])
             socketio.emit('updateSensorData', {'metric': 'outputHome', 'value': payload["properties"]["outputHomePower"], 'date': round(time.time()*1000)})
         if "solarInputPower" in payload["properties"]:
-            local_client.publish("solarflow-hub/telemetry/solarInputPower",payload["properties"]["solarInputPower"])
+            local_client.publish(f"{SOLARFLOW_TOPIC}/telemetry/solarInputPower",payload["properties"]["solarInputPower"])
             socketio.emit('updateSensorData', {'metric': 'solarInput', 'value': payload["properties"]["solarInputPower"], 'date': round(time.time()*1000)})
         if "outputPackPower" in payload["properties"]:
-            local_client.publish("solarflow-hub/telemetry/outputPackPower",payload["properties"]["outputPackPower"])
+            local_client.publish(f"{SOLARFLOW_TOPIC}/telemetry/outputPackPower",payload["properties"]["outputPackPower"])
             socketio.emit('updateSensorData', {'metric': 'outputPack', 'value': -payload["properties"]["outputPackPower"], 'date': round(time.time()*1000)})
         if "packInputPower" in payload["properties"]:
-            local_client.publish("solarflow-hub/telemetry/packInputPower",payload["properties"]["packInputPower"])
+            local_client.publish(f"{SOLARFLOW_TOPIC}/telemetry/packInputPower",payload["properties"]["packInputPower"])
             socketio.emit('updateSensorData', {'metric': 'outputPack', 'value': payload["properties"]["packInputPower"], 'date': round(time.time()*1000)})
         if "electricLevel" in payload["properties"]:
-            local_client.publish("solarflow-hub/telemetry/electricLevel",payload["properties"]["electricLevel"])
+            local_client.publish(f"{SOLARFLOW_TOPIC}/telemetry/electricLevel",payload["properties"]["electricLevel"])
             socketio.emit('updateSensorData', {'metric': 'electricLevel', 'value': payload["properties"]["electricLevel"], 'date': round(time.time()*1000)})
             device_details["electricLevel"] = payload["properties"]["electricLevel"]
         if "outputLimit" in payload["properties"]:
@@ -149,7 +150,7 @@ def on_local_message(client, userdata, msg):
         if property in ["minVol", "maxVol", "maxTemp", "totalVol", "socLevel"]:
             socketio.emit('updateSensorData', {'metric': property, 'value': payload, 'date': sn})
 
-    if "solarflow-hub" in msg.topic:
+    if f"{SOLARFLOW_TOPIC}" in msg.topic:
         try:
             payload = int(payload)
         except:
@@ -238,7 +239,7 @@ def zendure_subscribe(client: mqtt_client, auth: ZenAuth):
 
 def local_subscribe(client: mqtt_client):
     log.info(f'Subscribing to topics...')
-    telemetry_topic = "solarflow-hub/telemetry/#"
+    telemetry_topic = f"{SOLARFLOW_TOPIC}/telemetry/#"
     client.subscribe(telemetry_topic)
     client.subscribe("/73bkTV/+/properties/report")
     client.subscribe("/73bkTV/+/log")
@@ -260,10 +261,12 @@ def get_auth() -> ZenAuth:
         return auth
 
 def zendure_mqtt_background_task():
+    global clientId
     client = None
     while client is None:
         try:
             auth = get_auth()
+            clientId=auth.clientId
             client = connect_zendure_mqtt(auth.clientId)
         except:
             log.exception("Connecting to Zendure's MQTT broker failed!")
